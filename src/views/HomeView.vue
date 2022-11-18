@@ -1,6 +1,6 @@
 <template>
   <div class="home">
-    <canvas id="stage" width="100%" height="100%"></canvas>
+    <canvas id="stage" width="500px" height="100px"></canvas>
     <div class="inner-home">
     <div class="centered">
       <h1>GAR3</h1>
