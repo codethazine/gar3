@@ -19,12 +19,14 @@ export default {
   name: 'GameView',
   components: {
   },
-  mounted() {
+  async mounted() {
     if (this.walletStore.address != '') {
       console.log('There is a wallet connected!');
     }
-    this.initCanvas();
-		setInterval(this.draw, 10);
+		this.provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+    this.signer = await this.provider.getSigner();
+    await this.initCanvas();
+		setInterval(this.draw, 1000);
   },
 	data() {
 		return {
@@ -35,10 +37,13 @@ export default {
 			y: 0,
 			dx: 2,
 			dy: -2,
+			provider: null,
+      signer: null,
 		}
 	},
   methods: {
 		draw() {
+			this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 			this.ctx.beginPath();
 			this.ctx.arc(this.x, this.y, 10, 0, Math.PI * 2);
 			this.ctx.fillStyle = "#0095DD";
@@ -47,34 +52,31 @@ export default {
 			this.x += this.dx;
 			this.y += this.dy;
 		}, 
-    initCanvas() {
+    async initCanvas() {
       this.canvas = document.getElementById("myCanvas");
       this.ctx = this.canvas.getContext("2d");
-			this.x = this.canvas.width / 2;
-			this.y = this.canvas.height - 30;
 
+			const contractAddress = process.env.VUE_APP_MSG_CONTRACT || '';
+			console.log(contractAddress);
+      if (contractAddress === '') {
+        console.error('No contract address found!');
+        return;
+      }
+			const contract = new ethers.Contract(
+				contractAddress,
+				Gar3.abi,
+				this.signer
+			);
 
+			var gameId = await contract.gamesCount();
+			console.log(gameId.toString());
 
-			// Square
-      this.ctx.beginPath();
-      this.ctx.rect(20, 40, 50, 50);
-      this.ctx.fillStyle = "#FF0000";
-      this.ctx.fill();
-      this.ctx.closePath();
+			var game = await contract.games(gameId.toString());
+			console.log(game);
 
-			// Circle
-			this.ctx.beginPath();
-			this.ctx.arc(240, 160, 20, 0, Math.PI * 2, false);
-			this.ctx.fillStyle = "green";
-			this.ctx.fill();
-			this.ctx.closePath();
-
-			// Line
-			this.ctx.beginPath();
-			this.ctx.rect(160, 10, 100, 40);
-			this.ctx.strokeStyle = "rgba(0, 0, 255, 0.5)";
-			this.ctx.stroke();
-			this.ctx.closePath();
+			var players = await contract.getPlayers(gameId.toString());
+			console.log(players);
+			
 		}
   },
   setup() {
@@ -131,6 +133,7 @@ canvas {
     font-size: 2.1rem; 
     margin: 0px;
     cursor: pointer;
+		color:black;
 }
 .btn {
     right: 5px;

@@ -3,8 +3,8 @@
     <canvas id="stage" width="500px" height="100px"></canvas>
     <div class="inner-home">
     <div class="centered">
-      <h1 style="font-size: 5.5rem;">GAR3</h1>
-      <button v-if="walletStore.address == ''" class="btn btn-outline-dark" @click="connectwalletHandler()">Login with Metamask</button>
+      <h1 style="font-size: 5rem; color:black;">GAR3</h1>
+      <button v-if="walletStore.address == ''" class="btn btn-outline-dark" @click="connectwalletHandler()"><img style="height: 22px; margin-right: 10px;" src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/MetaMask_Fox.svg/800px-MetaMask_Fox.svg.png">Login with Metamask</button>
       <button v-else class="btn btn-outline-dark" @click="startGame()">Start game</button>
     </div>
     <link rel="preconnect" href="https://fonts.googleapis.com">
