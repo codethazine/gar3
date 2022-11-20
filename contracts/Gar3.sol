@@ -3,28 +3,30 @@ pragma solidity ^0.8.17;
 
 contract Gar3 {
 
-    uint256 constant MAX_PLAYERS = 3;
-    uint256 constant MAX_TIME_MINUTES = 10 minutes;
-    uint256 constant LIFE_INCREASE_TIME = 1 minutes;
+    uint256 constant public MAX_PLAYERS = 3;
+    uint256 constant public MAX_TIME_MINUTES = 10 minutes;
+    uint256 constant public LIFE_INCREASE_TIME = 1 minutes;
+    uint256 constant public LIFE_START_AMOUNT = 30;
+    uint256 constant public LIFE_CHANGE_AMOUNT = 10;
 
-    uint256 constant ENTRY_TKT = 1;
+    uint256 constant ENTRY_TKT = 10^16 wei; //0.01 ETH
 
     // Gaming engine constants
-    uint256 constant GRID_HEIGHT = 90;
     uint256 constant GRID_WIDTH = 160;
+    uint256 constant GRID_HEIGHT = 90;
     uint256 constant POSITION_MULTIPLIER = 3;
 
     struct Position {
-        uint256 height;
         uint256 width;
+        uint256 height;
     }
 
     // Starting position for each player
     Position[MAX_PLAYERS] public startingPositions;
     constructor() {
-        startingPositions[0] = Position(0, 0);
-        startingPositions[1] = Position(0, GRID_WIDTH - 1);
-        startingPositions[2] = Position(GRID_HEIGHT - 1, 0);
+        startingPositions[0] = Position(GRID_WIDTH/2, GRID_HEIGHT/4);
+        startingPositions[1] = Position(GRID_WIDTH/4, GRID_HEIGHT/4*3);
+        startingPositions[2] = Position(GRID_WIDTH/4*3, GRID_HEIGHT/4*3);
     }
     struct Players {
         address payable player;
@@ -35,8 +37,8 @@ contract Gar3 {
     }
 
     struct PlayingGrid {
-        uint256 height;
         uint256 width;
+        uint256 height;
     }
 
     enum GameStatus { CLOSED, PENDING, ACTIVE }
@@ -70,11 +72,11 @@ contract Gar3 {
         if (currPlayerId == MAX_PLAYERS) {
             gamesCount++;
             games[gamesCount].status = GameStatus.PENDING;
-            games[gamesCount].grid = PlayingGrid(GRID_HEIGHT, GRID_WIDTH);
+            games[gamesCount].grid = PlayingGrid(GRID_WIDTH, GRID_HEIGHT);
             currPlayerId = 0;
         }
 
-        games[gamesCount].players[currPlayerId] = Players(payable(msg.sender), currPlayerId, 0, startingPositions[currPlayerId], block.timestamp);
+        games[gamesCount].players[currPlayerId] = Players(payable(msg.sender), currPlayerId, LIFE_START_AMOUNT, startingPositions[currPlayerId], block.timestamp);
 
         // If game is full, start it
         if (games[gamesCount].players.length == MAX_PLAYERS) {
@@ -85,7 +87,7 @@ contract Gar3 {
     }
         
 
-    function movePlayer(uint256 gameId, uint256 direction_height, uint256 direction_width) public {
+    function movePlayer(uint256 gameId, uint256 direction_width, uint256 direction_height) public {
         Game storage game = games[gameId];
         require(game.status == GameStatus.ACTIVE, 'Game is not active'); 
     
@@ -102,8 +104,8 @@ contract Gar3 {
         Players storage playerToMove = game.players[playerId];
 
         // Move player towards the direction with the multiplier with grid normalized value
-        playerToMove.position.height += (direction_height * POSITION_MULTIPLIER) % GRID_HEIGHT;
-        playerToMove.position.width += (direction_width * POSITION_MULTIPLIER) % GRID_WIDTH;
+        playerToMove.position.width = direction_width;
+        playerToMove.position.height = direction_height;
 
         playerToMove.lastMoveTimestamp = block.timestamp;
         
@@ -115,13 +117,14 @@ contract Gar3 {
                 continue;
             }
             Players storage otherPlayer = game.players[i];
-            if (playerToMove.position.height >= otherPlayer.position.height - otherPlayer.life &&
-                playerToMove.position.height <= otherPlayer.position.height + otherPlayer.life &&
-                playerToMove.position.width >= otherPlayer.position.width - otherPlayer.life &&
-                playerToMove.position.width <= otherPlayer.position.width + otherPlayer.life) {
+            if (playerToMove.position.width >= otherPlayer.position.width - otherPlayer.life &&
+                playerToMove.position.width <= otherPlayer.position.width + otherPlayer.life &&
+                playerToMove.position.height >= otherPlayer.position.height - otherPlayer.life &&
+                playerToMove.position.height <= otherPlayer.position.height + otherPlayer.life) {
                 // Player has hit another player
-                // Reduce life of the other player
-                otherPlayer.life--;
+                // Reduce life of the other player and increase life of the player
+                otherPlayer.life = otherPlayer.life - LIFE_CHANGE_AMOUNT;
+                playerToMove.life = playerToMove.life + LIFE_CHANGE_AMOUNT;
                 if (otherPlayer.life == 0) {
                     // Player has lost
                     // Remove player from the game
@@ -131,20 +134,26 @@ contract Gar3 {
             }
         }
 
-        // If all players are dead, end the game and give the prize to the last player alive
-        uint256 alivePlayers = 0;
-        uint256 lastPlayerAlive = 0;
+        // If only one player is left, end the game and give the winner the prize
+        uint256 playersLeft = 0;
+        uint256 winnerId = 0;
         for (uint256 i = 0; i < MAX_PLAYERS; i++) {
             if (game.players[i].life > 0) {
-                alivePlayers++;
-                lastPlayerAlive = i;
+                playersLeft++;
+                winnerId = i;
             }
+        }
+        if (playersLeft == 1) {
+            // End game
+            game.status = GameStatus.CLOSED;
+            // Give prize to winner
+            game.players[winnerId].player.transfer(address(this).balance);
         }
 
         // If one minute has passed, increase the life of every player
         if (block.timestamp - game.players[playerId].lastMoveTimestamp >= LIFE_INCREASE_TIME) {
             for (uint256 i = 0; i < MAX_PLAYERS; i++) {
-                game.players[i].life++;
+                game.players[i].life = game.players[i].life + LIFE_CHANGE_AMOUNT;
             }
         }
 

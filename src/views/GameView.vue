@@ -4,7 +4,7 @@
     <button style="margin: 0px;" class="btn btn-outline-dark">{{walletStore.address}}</button>
 </div>
 <div class="canvas-container">
-    <canvas id="myCanvas" width="800" height="450"></canvas>
+    <canvas @click="movePlayer" id="myCanvas" width="800" height="450"></canvas>
 </div>
 </template>
 <script>
@@ -39,43 +39,119 @@ export default {
 			dy: -2,
 			provider: null,
       signer: null,
+			numberOfPlayers: 0,
+			gameIsFull: false,
+			contractAddress: null,
+			contract: null,
+			gameId: null,
+			playerColors: ["#FF0000", "#00FF00", "#0000FF"],
+			players: [],
 		}
 	},
   methods: {
-		draw() {
-			this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-			this.ctx.beginPath();
-			this.ctx.arc(this.x, this.y, 10, 0, Math.PI * 2);
-			this.ctx.fillStyle = "#0095DD";
-			this.ctx.fill();
-			this.ctx.closePath();
-			this.x += this.dx;
-			this.y += this.dy;
-		}, 
+		async draw() {
+			if (!this.gameIsFull) {
+				this.ctx.beginPath();
+				// Write "Waiting for other players to join the game..." at the center of  the canvas
+				this.ctx.font = "30px Arial";
+				this.ctx.fillText("Waiting for other players to join the game...", this.canvas.width/2 - 300, this.canvas.height/2);
+			} else {
+				// Get position of the three players and draw three circles on them
+				var tmpPlayers = await this.contract.getPlayers(this.gameId.toString());
+				console.log(tmpPlayers);
+
+				// If only one player has life != 0, the game is over
+				var numberOfPlayersAlive = 0;
+				for (var i = 0; i < tmpPlayers.length; i++) {
+					console.log(tmpPlayers[i].life.toNumber());
+					if (tmpPlayers[i].life.toNumber() != 0) {
+						numberOfPlayersAlive++;
+					}
+				}
+				if (numberOfPlayersAlive == 1) {
+					console.log("Game over!");
+					this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+					// Game is over
+					this.ctx.beginPath();
+					// Write "Game over" at the center of  the canvas
+					this.ctx.font = "30px Arial";
+					// In black
+					this.ctx.fillStyle = "#000000";
+					this.ctx.fillText("Game over", this.canvas.width/2 - 90, this.canvas.height/2);
+					this.ctx.closePath();
+					return 
+				} 
+				
+				// If position different from last one clear canvas and draw new circles
+				if (tmpPlayers != this.players) {
+				  this.players = tmpPlayers;
+
+					this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+					// For every player create a circle w players[i].position.width.toNumber()*10/2 as position
+					for (var i = 0; i < this.players.length; i++) {
+						console.log(i, this.players[i].position.width.toNumber()*10/2, this.players[i].position.height.toNumber()*10/2, this.players[i].life.toNumber());
+						this.ctx.beginPath();
+						this.ctx.arc(this.players[i].position.width.toNumber()*10/2, this.players[i].position.height.toNumber()*10/2,
+												 this.players[i].life.toNumber(), 0, Math.PI*2);
+						this.ctx.fillStyle = this.playerColors[i];
+						this.ctx.fill();
+						this.ctx.closePath();
+					}
+				}
+			}	
+		},
+		movePlayer(event) {
+			console.log(event);
+			var x = event.offsetX;
+			var y = event.offsetY;
+			console.log("x coords: " + x + ", y coords: " + y);
+			this.contract.movePlayer(this.gameId.toString(), Math.round(x/10*2), Math.round(y/10*2));
+
+		},
     async initCanvas() {
       this.canvas = document.getElementById("myCanvas");
       this.ctx = this.canvas.getContext("2d");
 
-			const contractAddress = process.env.VUE_APP_MSG_CONTRACT || '';
-			console.log(contractAddress);
-      if (contractAddress === '') {
+			this.contractAddress = process.env.VUE_APP_MSG_CONTRACT || '';
+			console.log(this.contractAddress);
+      if (this.contractAddress === '') {
         console.error('No contract address found!');
         return;
       }
-			const contract = new ethers.Contract(
-				contractAddress,
+			this.contract = new ethers.Contract(
+				this.contractAddress,
 				Gar3.abi,
 				this.signer
 			);
 
-			var gameId = await contract.gamesCount();
-			console.log(gameId.toString());
+			this.gameId = await this.contract.gamesCount();
+			console.log(this.gameId.toString());
 
-			var game = await contract.games(gameId.toString());
+			var game = await this.contract.games(this.gameId.toString());
 			console.log(game);
 
-			var players = await contract.getPlayers(gameId.toString());
+			var players = await this.contract.getPlayers(this.gameId.toString());
 			console.log(players);
+
+			// Count number of players with address != 0x0000000
+			for (var i = 0; i < players.length; i++) {
+				if (players[i][0] != '0x0000000000000000000000000000000000000000') {
+					this.numberOfPlayers++;
+				}
+			}
+			console.log(this.numberOfPlayers);
+
+			// Get MAX_PLAYERS from contract
+			var maxPlayers = await this.contract.MAX_PLAYERS();
+			console.log(maxPlayers.toString());
+
+			// Check if game is full
+			if (this.numberOfPlayers == maxPlayers.toString()) {
+				console.log('Game is full!');
+				this.gameIsFull = true;
+			}
+
 			
 		}
   },
