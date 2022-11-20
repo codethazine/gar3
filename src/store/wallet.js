@@ -11,6 +11,16 @@ export const useWalletStore = defineStore('wallet', {
         saveWalletData(payload) {
             this.address = payload.address;
         },
+        connectWallet() {
+            //@ts-ignore
+            window.ethereum.request({ method: 'eth_requestAccounts' })
+                .then((accounts) => {
+                    this.saveWalletData({ address: accounts[0] });
+                })
+                .catch((err) => {
+                    console.log(err);
+                });
+        }
     },
 });
 

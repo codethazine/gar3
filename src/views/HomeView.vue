@@ -4,8 +4,8 @@
     <div class="inner-home">
     <div class="centered">
       <h1 style="font-size: 5.5rem;">GAR3</h1>
-      <button class="btn btn-outline-dark" @click="this.$router.push('/game')">
-  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/MetaMask_Fox.svg/800px-MetaMask_Fox.svg.png" class="imgMeta"> Login with metamask</button>
+      <button v-if="walletStore.address == ''" class="btn btn-outline-dark" @click="connectwalletHandler()">Login with Metamask</button>
+      <button v-else class="btn btn-outline-dark" @click="startGame()">Start game</button>
     </div>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,17 +16,27 @@
 
 <script>
 // @ is an alias to /src
-import HelloWorld from '@/components/HelloWorld.vue'
+import { useWalletStore } from '@/store/wallet';
+import { ethers } from 'ethers';
+
+// Contract ABI
+import Gar3 from '../../artifacts/contracts/Gar3.sol/Gar3.json';
 
 export default {
   name: 'HomeView',
   components: {
-    HelloWorld
   },
   mounted() {
     this.initStages();
     this.initCircles();
     this.animate();
+    if (this.walletStore.address != '') {
+      console.log('There is a wallet connected!');
+    }
+  },
+  setup() {
+    const walletStore = useWalletStore();
+    return {walletStore};
   },
   data() {
     return {
@@ -40,10 +50,68 @@ export default {
       offsetX: null,
       offsetY: null,
       text: null,
+      provider: null,
+      signer: null,
       colors: ['#B2949D', '#FFF578', '#FF5F8D', '#37A9CC', '#188EB2']
     } 
   },
+  computed: {
+    accAvailable() {
+      return useWalletStore().walletData;
+    },
+  },
+  watch: {
+    accAvailable(newVal, old) {
+      console.log(`updating from ${old} to ${newVal}`);
+      this.retrieveMessages();
+    },
+  },
   methods: {
+    async connectwalletHandler() {
+      this.provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+      // Prompt user for account connections
+      await this.provider.send("eth_requestAccounts", []);
+      this.signer = this.provider.getSigner();
+      console.log("Account:", await this.signer.getAddress());
+      useWalletStore().connectWallet();
+    },
+    async startGame() {
+      // address of the contract loaded from an environment variable
+      console.log(process.env)
+      const contractAddress = process.env.VUE_APP_MSG_CONTRACT || '';
+      console.log(contractAddress);
+      if (contractAddress === '') {
+        console.error('No contract address found!');
+        return;
+      }
+
+      if (window.ethereum !== 'undefined') {
+        //@ts-expect-error Window.ethers not TS
+        // Contract reference
+        const contract = new ethers.Contract(
+          contractAddress,
+          Gar3.abi,
+          this.signer
+        );
+        try {
+          // call contract public method
+          // Get current game id
+          var gameId = await contract.gamesCount();
+          gameId = gameId.toString();
+          console.log(gameId);
+
+          const data = await contract.startGame({value: ethers.utils.parseUnits("1", "ether"), 
+                                                 gasLimit: 5000000});
+          console.log(data);
+          const receipt = await data.wait()
+          console.log(receipt);
+
+          this.$router.push('/game/' + gameId);
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    },
     // Init Canvas
     initStages() {
         this.offsetX = (window.innerWidth-600)/2;
