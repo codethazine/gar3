@@ -1,13 +1,12 @@
-# Sample Hardhat Project
+# Gar3
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.
+Gar3 is a Casual Game on AltLayer, inspired by Agar.io.
+Players pay an entry ticket, to get to a canvas with other 2 players. If one hits another, he gets his life points.
+Last payable(address) standing wins.
 
-Try running some of the following tasks:
-
+To test the game run the following commands
 ```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
 npx hardhat node
 npx hardhat run scripts/deploy.js
+npm run serve
 ```
