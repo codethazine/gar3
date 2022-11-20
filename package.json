@@ -17,6 +17,7 @@
     "ethers": "^5.7.2",
     "hardhat": "^2.12.2",
     "requestanimationframe": "^0.0.23",
+    "node": "^19.1.0",
     "vue": "^3.2.13",
     "vue-router": "^4.0.3",
     "vuex": "^4.0.0"
