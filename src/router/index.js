@@ -8,7 +8,7 @@ const routes = [
     component: HomeView
   },
   {
-    path: '/game',
+    path: '/game/:id',
     name: 'game',
     component: () => import(/* webpackChunkName: "about" */ '../views/GameView.vue')
   },

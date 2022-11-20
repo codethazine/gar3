@@ -1,13 +1,45 @@
 <template>
 <div class="header">
-    <h1 class=Gar3 style="font-size: 2.1rem; margin: 0px;">GAR3</h1>
-    <button style="margin: 0px;" class="btn btn-outline-dark">0x71C7656EC7ab88b098defB751B7401B5f6d8976F</button>
+    <h1 @click="this.$router.push('/')" class="Gar3" style="font-size: 2.1rem; margin: 0px;">GAR3</h1>
+    <button style="margin: 0px;" class="btn btn-outline-dark">{{walletStore.address}}</button>
 </div>
 <canvas>
 
 </canvas>
 </template>
 <script>
+// @ is an alias to /src
+import { useWalletStore } from '@/store/wallet';
+import { ethers } from 'ethers';
+
+// Contract ABI
+import Gar3 from '../../artifacts/contracts/Gar3.sol/Gar3.json';
+
+export default {
+  name: 'GameView',
+  components: {
+  },
+  mounted() {
+    if (this.walletStore.address != '') {
+      console.log('There is a wallet connected!');
+    }
+  },
+  setup() {
+    const walletStore = useWalletStore();
+    return {walletStore};
+  },
+  computed: {
+    accAvailable() {
+      return useWalletStore().walletData;
+    },
+  },
+  watch: {
+    accAvailable(newVal, old) {
+      console.log(`updating from ${old} to ${newVal}`);
+      this.retrieveMessages();
+    },
+  }
+}
 </script>
 <style scoped>
 .square {
