@@ -4,8 +4,7 @@
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build",
-    "vercel-build": "npm global add node-gyp"
+    "build": "vue-cli-service build"
   },
   "dependencies": {
     "@nomiclabs/hardhat-ethers": "^2.2.1",
