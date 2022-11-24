@@ -20,7 +20,7 @@ import { useWalletStore } from '@/store/wallet';
 import { ethers } from 'ethers';
 
 // Contract ABI
-import Gar3 from '@/artifacts/contracts/Gar3.sol/Gar3.json';
+import Gar3 from '../../artifacts/contracts/Gar3.sol/Gar3.json';
 
 export default {
   name: 'HomeView',
