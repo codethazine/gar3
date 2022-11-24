@@ -5,9 +5,11 @@ Gar3 is a Casual Game on AltLayer, inspired by Agar.io.
 Players pay an entry ticket, to get to a canvas with other 2 players. If one hits another, he gets his life points.
 Last payable(address) standing wins.
 
-To test the game run the following commands
+Try the game out at [Gar3](https://gar3-five.vercel.app/)!
+
+To test the game locally run the following commands
 ```shell
-npx hardhat node
-npx hardhat run scripts/deploy.js
+yarn hardhat node
+yarn hardhat run scripts/deploy.js --network localhost scripts/deploy.js
 npm run serve
 ```
