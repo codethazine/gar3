@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "vercel-build": "yarn global add node-gyp",
     "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build"
+    "build": "vue-cli-service build",
+    "vercel-build": "yarn global add node-gyp"
   },
   "dependencies": {
     "@nomiclabs/hardhat-ethers": "^2.2.1",
